@@ -1,6 +1,7 @@
 """
 Reads the Wikimedia SSE stream and publishes each edit event to a Kafka topic.
 """
+import asyncio
 import json
 import logging
 import os
@@ -33,18 +34,21 @@ def get_producer(retries: int = 15, delay: int = 5) -> KafkaProducer:
     raise RuntimeError(f"Could not connect to Kafka after {retries} attempts")
 
 
-def main() -> None:
-    producer = get_producer()
-    logger.info("Connected to Kafka. Publishing to topic '%s'…", TOPIC)
-
+async def _run(producer: KafkaProducer) -> None:
     count = 0
-    for event in read_stream():
+    async for event in read_stream():
         if event.get("type") not in ("edit", "new"):
             continue
         producer.send(TOPIC, event)
         count += 1
         if count % 200 == 0:
             logger.info("Published %d events", count)
+
+
+def main() -> None:
+    producer = get_producer()
+    logger.info("Connected to Kafka. Publishing to topic '%s'…", TOPIC)
+    asyncio.run(_run(producer))
 
 
 if __name__ == "__main__":

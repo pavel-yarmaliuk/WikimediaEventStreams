@@ -1,7 +1,7 @@
 import json
 import logging
-import requests
-from typing import Iterator
+import httpx
+from typing import AsyncIterator
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +10,9 @@ STREAM_URL = "https://stream.wikimedia.org/v2/stream/recentchange"
 HEADERS = {
     "User-Agent": "WikimediaEditGraph/1.0 (portfolio-project; https://github.com/PavelYarmaliuk/WikimediaEventStreams)"
 }
+
+_TIMEOUT = httpx.Timeout(connect=10.0, read=None, write=None, pool=10.0)
+_LIMITS = httpx.Limits(max_connections=1, max_keepalive_connections=1, keepalive_expiry=30.0)
 
 
 def parse_event(line: str) -> dict | None:
@@ -22,15 +25,16 @@ def parse_event(line: str) -> dict | None:
         return None
 
 
-def read_stream(url: str = STREAM_URL) -> Iterator[dict]:
+async def read_stream(url: str = STREAM_URL) -> AsyncIterator[dict]:
     """Yields parsed recentchange events from the Wikimedia SSE stream."""
-    while True:
-        try:
-            with requests.get(url, stream=True, timeout=30, headers=HEADERS) as resp:
-                resp.raise_for_status()
-                for line in resp.iter_lines(decode_unicode=True):
-                    event = parse_event(line)
-                    if event:
-                        yield event
-        except requests.RequestException as exc:
-            logger.error("Stream connection error, reconnecting: %s", exc)
+    async with httpx.AsyncClient(headers=HEADERS, timeout=_TIMEOUT, limits=_LIMITS) as client:
+        while True:
+            try:
+                async with client.stream("GET", url) as resp:
+                    resp.raise_for_status()
+                    async for line in resp.aiter_lines():
+                        event = parse_event(line)
+                        if event:
+                            yield event
+            except httpx.HTTPError as exc:
+                logger.error("Stream connection error, reconnecting: %s", exc)
