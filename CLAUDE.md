@@ -6,7 +6,7 @@ Real-time pipeline that consumes Wikipedia edit events from the Wikimedia SSE AP
 
 There are two write paths: a **Kafka/Spark path** (`producer.py` → Kafka → `spark_consumer.py` → Neo4j) for production use, and a **direct path** (`pipeline.py` → Neo4j) for local development. Both share `stream_reader.py` as the SSE abstraction. Analytics queries run via `queries.py` against the populated graph.
 
-**Stack**: Python 3.12, Apache Kafka (Confluent 7.6.1), Apache Spark Structured Streaming 3.5.8, Neo4j 5.18 Community, Docker Compose.
+**Stack**: Python 3.12, httpx (async SSE streaming), Apache Kafka (Confluent 7.6.1), Apache Spark Structured Streaming 3.5.8, Neo4j 5.18 Community, Docker Compose.
 
 **Structure**: All application code is in `src/`. Infrastructure is fully Docker-composed (`docker-compose.yml`). Convenience commands are in `Makefile`.
 
