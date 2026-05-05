@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import httpx
@@ -36,5 +37,11 @@ async def read_stream(url: str = STREAM_URL) -> AsyncIterator[dict]:
                         event = parse_event(line)
                         if event:
                             yield event
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code < 500:
+                    raise
+                logger.error("Server error %d, reconnecting: %s", exc.response.status_code, exc)
+                await asyncio.sleep(1)
             except httpx.HTTPError as exc:
                 logger.error("Stream connection error, reconnecting: %s", exc)
+                await asyncio.sleep(1)

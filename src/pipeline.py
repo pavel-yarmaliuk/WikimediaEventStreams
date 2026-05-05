@@ -38,7 +38,7 @@ async def _run(limit: int | None, writer: Neo4jWriter) -> None:
         if count % 100 == 0:
             logger.info("Processed %d events", count)
 
-        if limit and count >= limit:
+        if limit is not None and count >= limit:
             logger.info("Reached limit of %d events. Stopping.", limit)
             break
 
