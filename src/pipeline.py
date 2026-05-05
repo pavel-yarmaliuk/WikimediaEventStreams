@@ -8,6 +8,7 @@ Set NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD in a .env file (copy .env.example).
 """
 
 import argparse
+import asyncio
 import logging
 import os
 from dotenv import load_dotenv
@@ -17,11 +18,29 @@ from src.neo4j_writer import Neo4jWriter
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
+    format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
 )
 logger = logging.getLogger(__name__)
 
 load_dotenv()
+
+
+async def _run(limit: int | None, writer: Neo4jWriter) -> None:
+    count = 0
+    async for event in read_stream():
+        event_type = event.get("type")
+        if event_type not in ("edit", "new"):
+            continue
+
+        writer.write_event(event)
+        count += 1
+
+        if count % 100 == 0:
+            logger.info("Processed %d events", count)
+
+        if limit is not None and count >= limit:
+            logger.info("Reached limit of %d events. Stopping.", limit)
+            break
 
 
 def main(limit: int | None = None) -> None:
@@ -33,21 +52,7 @@ def main(limit: int | None = None) -> None:
     logger.info("Connected to Neo4j. Starting stream…")
 
     try:
-        count = 0
-        for event in read_stream():
-            event_type = event.get("type")
-            if event_type not in ("edit", "new"):
-                continue
-
-            writer.write_event(event)
-            count += 1
-
-            if count % 100 == 0:
-                logger.info("Processed %d events", count)
-
-            if limit and count >= limit:
-                logger.info("Reached limit of %d events. Stopping.", limit)
-                break
+        asyncio.run(_run(limit, writer))
     finally:
         writer.close()
 

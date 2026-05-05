@@ -1,7 +1,9 @@
+import asyncio
 import json
 import logging
-import requests
-from typing import Iterator
+from typing import AsyncIterator
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -11,26 +13,43 @@ HEADERS = {
     "User-Agent": "WikimediaEditGraph/1.0 (portfolio-project; https://github.com/PavelYarmaliuk/WikimediaEventStreams)"
 }
 
+_TIMEOUT = httpx.Timeout(connect=10.0, read=None, write=None, pool=10.0)
+_LIMITS = httpx.Limits(max_connections=1, max_keepalive_connections=1, keepalive_expiry=30.0)
+
 
 def parse_event(line: str) -> dict | None:
+    """Parse a single SSE line into an event dict, or None if not a data line.
+
+    SSE data lines have the form ``data: <json>``. The ``data:`` prefix (5 chars)
+    is stripped before JSON parsing. Non-data lines (``event:``, ``id:``, blank,
+    comments) are expected and silently skipped.
+    """
     if not line.startswith("data:"):
+        logger.debug("Skipping non-data SSE line: %s", line[:60])
         return None
     try:
         return json.loads(line[5:].strip())
     except json.JSONDecodeError:
-        logger.warning("Failed to parse line: %s", line[:120])
+        logger.warning("Failed to parse SSE data line: %s", line[:120])
         return None
 
 
-def read_stream(url: str = STREAM_URL) -> Iterator[dict]:
+async def read_stream(url: str = STREAM_URL) -> AsyncIterator[dict]:
     """Yields parsed recentchange events from the Wikimedia SSE stream."""
-    while True:
-        try:
-            with requests.get(url, stream=True, timeout=30, headers=HEADERS) as resp:
-                resp.raise_for_status()
-                for line in resp.iter_lines(decode_unicode=True):
-                    event = parse_event(line)
-                    if event:
-                        yield event
-        except requests.RequestException as exc:
-            logger.error("Stream connection error, reconnecting: %s", exc)
+    async with httpx.AsyncClient(headers=HEADERS, timeout=_TIMEOUT, limits=_LIMITS) as client:
+        while True:
+            try:
+                async with client.stream("GET", url) as resp:
+                    resp.raise_for_status()
+                    async for line in resp.aiter_lines():
+                        event = parse_event(line)
+                        if event is not None:
+                            yield event
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code < 500:
+                    raise
+                logger.error("Server error %d, reconnecting: %s", exc.response.status_code, exc)
+                await asyncio.sleep(1)
+            except httpx.HTTPError as exc:
+                logger.error("Stream connection error, reconnecting: %s", exc)
+                await asyncio.sleep(1)
