@@ -1,0 +1,5 @@
+requests==2.32.3
+neo4j==5.27.0
+python-dotenv==1.0.1
+kafka-python-ng==2.2.3
+pyspark==3.5.0
