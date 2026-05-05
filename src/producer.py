@@ -12,7 +12,7 @@ from kafka.errors import NoBrokersAvailable
 
 from src.stream_reader import read_stream
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s")
 logger = logging.getLogger(__name__)
 
 KAFKA_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")

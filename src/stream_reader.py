@@ -1,8 +1,9 @@
 import asyncio
 import json
 import logging
-import httpx
 from typing import AsyncIterator
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +18,19 @@ _LIMITS = httpx.Limits(max_connections=1, max_keepalive_connections=1, keepalive
 
 
 def parse_event(line: str) -> dict | None:
+    """Parse a single SSE line into an event dict, or None if not a data line.
+
+    SSE data lines have the form ``data: <json>``. The ``data:`` prefix (5 chars)
+    is stripped before JSON parsing. Non-data lines (``event:``, ``id:``, blank,
+    comments) are expected and silently skipped.
+    """
     if not line.startswith("data:"):
+        logger.debug("Skipping non-data SSE line: %s", line[:60])
         return None
     try:
         return json.loads(line[5:].strip())
     except json.JSONDecodeError:
-        logger.warning("Failed to parse line: %s", line[:120])
+        logger.warning("Failed to parse SSE data line: %s", line[:120])
         return None
 
 
@@ -35,7 +43,7 @@ async def read_stream(url: str = STREAM_URL) -> AsyncIterator[dict]:
                     resp.raise_for_status()
                     async for line in resp.aiter_lines():
                         event = parse_event(line)
-                        if event:
+                        if event is not None:
                             yield event
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code < 500:

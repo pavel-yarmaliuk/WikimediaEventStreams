@@ -18,7 +18,7 @@ from src.neo4j_writer import Neo4jWriter
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
+    format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
 )
 logger = logging.getLogger(__name__)
 
