@@ -12,6 +12,10 @@ from pyspark.sql.types import (
 )
 from neo4j import GraphDatabase
 
+from src.logger import configure_logging
+
+logger = configure_logging("spark_consumer")
+
 KAFKA_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 NEO4J_URI     = os.environ.get("NEO4J_URI",      "bolt://localhost:7687")
 NEO4J_USER    = os.environ.get("NEO4J_USER",     "neo4j")

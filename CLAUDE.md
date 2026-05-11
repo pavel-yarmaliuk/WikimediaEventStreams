@@ -29,3 +29,7 @@ python -m src.pipeline --limit 500
 ## Environment Setup
 
 Copy `.env.example` to `.env` and fill in values (or use defaults for local Docker-based dev — defaults already match `docker-compose.yml`).
+
+## Logging
+
+All entrypoints share `src/logger.py` (`configure_logging`). Each writes to `logs/<entrypoint>.log` (console output unchanged). Files rotate at 10 MB and 5 backups are kept; tune via `LOG_DIR`, `LOG_LEVEL`, `LOG_MAX_BYTES`, `LOG_BACKUP_COUNT`. Docker producer/spark-consumer bind-mount `./logs` to `/app/logs`.

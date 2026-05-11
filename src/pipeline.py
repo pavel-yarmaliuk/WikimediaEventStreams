@@ -9,18 +9,14 @@ Set NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD in a .env file (copy .env.example).
 
 import argparse
 import asyncio
-import logging
 import os
 from dotenv import load_dotenv
 
+from src.logger import configure_logging
 from src.stream_reader import read_stream
 from src.neo4j_writer import Neo4jWriter
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = configure_logging("pipeline")
 
 load_dotenv()
 
