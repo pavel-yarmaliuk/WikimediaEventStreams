@@ -1,0 +1,13 @@
+{
+  "enabledMcpjsonServers": [
+    "github"
+  ],
+  "enabledPlugins": {
+    "cartographer@cartographer-marketplace": true
+  },
+  "permissions": {
+    "allow": [
+      "mcp__github__pull_request_review_write"
+    ]
+  }
+}

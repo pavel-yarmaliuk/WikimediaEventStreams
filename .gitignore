@@ -4,5 +4,3 @@ __pycache__/
 .idea/
 .venv/
 venv/
-.claude/
-.mcp.json
