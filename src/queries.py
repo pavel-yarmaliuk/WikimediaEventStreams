@@ -9,6 +9,9 @@ import os
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 
+from src.logger import configure_logging
+
+logger = configure_logging("queries")
 load_dotenv()
 
 TOP_EDITORS = """
@@ -33,12 +36,12 @@ ORDER BY common_pages DESC LIMIT 10
 
 
 def run_query(driver, title: str, cypher: str) -> None:
-    print(f"\n{'='*60}")
-    print(f"  {title}")
-    print("="*60)
+    logger.info("=" * 60)
+    logger.info("  %s", title)
+    logger.info("=" * 60)
     with driver.session() as session:
         for record in session.run(cypher):
-            print(dict(record))
+            logger.info("%s", dict(record))
 
 
 def main() -> None:

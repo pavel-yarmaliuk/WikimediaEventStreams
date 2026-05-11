@@ -48,6 +48,7 @@ graph TB
 WikimediaEventStreams/
 ├── src/                        # Python application code
 │   ├── __init__.py             # Package marker (empty)
+│   ├── logger.py               # Shared logging setup (console + rotating file)
 │   ├── stream_reader.py        # Wikimedia SSE infinite generator
 │   ├── producer.py             # Entry point: SSE → Kafka
 │   ├── pipeline.py             # Entry point: SSE → Neo4j (direct)
@@ -66,6 +67,19 @@ WikimediaEventStreams/
 ```
 
 ## Module Guide
+
+### `src/logger.py`
+
+**Purpose**: One-call configuration of console + rotating-file logging for every entrypoint. Library modules (`stream_reader`, `neo4j_writer`) keep using `logging.getLogger(__name__)` and propagate to the root handlers installed here.
+
+**Key exports**:
+- `configure_logging(name, *, log_dir=None) -> logging.Logger` — installs a `StreamHandler` (stdout) and a `RotatingFileHandler` on the root logger and returns the named logger. Idempotent via a module-level `_configured` flag.
+
+**Configuration (env vars)**: `LOG_DIR` (default `logs`), `LOG_LEVEL` (default `INFO`), `LOG_MAX_BYTES` (default 10 MB), `LOG_BACKUP_COUNT` (default 5).
+
+**Patterns**: Handlers attach to the root logger, not the per-call logger — every `getLogger(__name__)` in the codebase propagates into the same file with no per-module wiring.
+
+---
 
 ### `src/stream_reader.py`
 
@@ -230,6 +244,10 @@ sequenceDiagram
 | `NEO4J_USER` | same | `neo4j` | |
 | `NEO4J_PASSWORD` | same | `password` | |
 | `KAFKA_BOOTSTRAP_SERVERS` | `producer.py`, `spark_consumer.py` | `localhost:9092` | Comma-separated `host:port` |
+| `LOG_DIR` | `logger.py` (all entrypoints) | `logs` | Directory for `<entrypoint>.log` files |
+| `LOG_LEVEL` | `logger.py` | `INFO` | Root logger level |
+| `LOG_MAX_BYTES` | `logger.py` | `10485760` (10 MB) | Rotation threshold per log file |
+| `LOG_BACKUP_COUNT` | `logger.py` | `5` | Number of rotated backups kept |
 
 ## Conventions
 

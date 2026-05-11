@@ -3,17 +3,16 @@ Reads the Wikimedia SSE stream and publishes each edit event to a Kafka topic.
 """
 import asyncio
 import json
-import logging
 import os
 import time
 
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
 
+from src.logger import configure_logging
 from src.stream_reader import read_stream
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s")
-logger = logging.getLogger(__name__)
+logger = configure_logging("producer")
 
 KAFKA_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 TOPIC = "wikimedia-recentchange"
